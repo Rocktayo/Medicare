@@ -1,0 +1,6 @@
+{
+  "name": "MediCare Hospital Management System",
+  "description": "A modern, responsive, premium landing page and interactive portal for MediCare Hospital Management System (HMS), featuring online appointment booking, doctor directory, patient & admin portals, department listings, and interactive healthcare tools.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
