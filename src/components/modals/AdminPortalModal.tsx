@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ADMIN_STATS, DOCTORS } from '../../data/hospitalData';
-import { X, LayoutDashboard, Users, Calendar, BedDouble, TrendingUp, CheckCircle2, UserCheck, Plus, AlertTriangle, ShieldCheck, Database, RefreshCw, User, LogOut } from 'lucide-react';
+import { X, LayoutDashboard, Users, Calendar, BedDouble, TrendingUp, CheckCircle2, UserCheck, Plus, AlertTriangle, ShieldCheck, Database, RefreshCw, User, LogOut, Trash2 } from 'lucide-react';
 
 interface AdminPortalModalProps {
   isOpen: boolean;
@@ -59,6 +59,22 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({ isOpen, onCl
     setBedsAvailable((prev) => prev + 1);
     setNotification('Bed #402 disinfected and released to available inventory.');
     setTimeout(() => setNotification(null), 3000);
+  };
+
+  const handleDeleteMongoPatient = async (patientId: string, patientName: string) => {
+    if (!window.confirm(`Are you sure you want to permanently delete patient ${patientName} (${patientId})?`)) return;
+    try {
+      const res = await fetch(`/api/admin/patients/${patientId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        setMongoPatients(prev => prev.filter(p => (p.patientId || p.id) !== patientId));
+        setNotification(`Patient ${patientName} deleted successfully.`);
+        setTimeout(() => setNotification(null), 3000);
+        window.dispatchEvent(new Event('medicare_patient_updated'));
+      }
+    } catch (err) {
+      console.error('Failed to delete patient:', err);
+    }
   };
 
   return (
@@ -320,6 +336,14 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({ isOpen, onCl
                       <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800">
                         MongoDB Active
                       </span>
+                      <button
+                        onClick={() => handleDeleteMongoPatient(p.patientId || p.id, p.fullName)}
+                        className="px-2.5 py-1 rounded-lg bg-red-950 hover:bg-red-900 border border-red-800 text-red-400 text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                        title="Delete patient from system"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Delete</span>
+                      </button>
                     </div>
                   </div>
                 ))

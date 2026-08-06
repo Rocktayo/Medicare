@@ -55,63 +55,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   >('patients');
 
   // --- 1. PATIENTS STATE ---
-  const [patientList, setPatientList] = useState([
-    {
-      id: 'PAT-8801',
-      name: 'Jane Doe',
-      age: 34,
-      gender: 'Female',
-      bloodGroup: 'O+',
-      contact: '+1 (555) 234-5678',
-      email: 'jane.doe@example.com',
-      status: 'Outpatient',
-      department: 'General Medicine',
-      attendingDoctor: 'Dr. Robert Chen',
-      admissionDate: '2026-08-01'
-    },
-    {
-      id: 'PAT-8802',
-      name: 'Michael Vance',
-      age: 48,
-      gender: 'Male',
-      bloodGroup: 'A+',
-      contact: '+1 (555) 345-6789',
-      email: 'michael.v@example.com',
-      status: 'Admitted (ICU)',
-      department: 'Cardiology',
-      attendingDoctor: 'Dr. Marcus Vance',
-      admissionDate: '2026-08-03'
-    },
-    {
-      id: 'PAT-8803',
-      name: 'Emily Watson',
-      age: 29,
-      gender: 'Female',
-      bloodGroup: 'B-',
-      contact: '+1 (555) 456-7890',
-      email: 'emily.w@example.com',
-      status: 'Outpatient',
-      department: 'Pediatrics',
-      attendingDoctor: 'Dr. Sarah Jenkins',
-      admissionDate: '2026-08-02'
-    },
-    {
-      id: 'PAT-8804',
-      name: 'Robert Harris',
-      age: 62,
-      gender: 'Male',
-      bloodGroup: 'AB+',
-      contact: '+1 (555) 567-8901',
-      email: 'robert.h@example.com',
-      status: 'Discharged',
-      department: 'Orthopedics',
-      attendingDoctor: 'Dr. Elena Rostova',
-      admissionDate: '2026-07-28'
-    }
-  ]);
-
+  const [patientList, setPatientList] = useState<any[]>([]);
   const [patientSearch, setPatientSearch] = useState('');
   const [showAddPatientModal, setShowAddPatientModal] = useState(false);
+  const [patientActionMsg, setPatientActionMsg] = useState<string | null>(null);
+  const [patientToDelete, setPatientToDelete] = useState<{ id: string; name: string } | null>(null);
   const [newPatientForm, setNewPatientForm] = useState({
     name: '',
     age: 30,
@@ -120,8 +68,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     contact: '',
     email: '',
     status: 'Outpatient',
-    department: DEPARTMENTS[0].name,
-    attendingDoctor: DOCTORS[0].name
+    department: DEPARTMENTS[0]?.name || 'General Medicine',
+    attendingDoctor: DOCTORS[0]?.name || 'Dr. Unassigned'
   });
 
   // --- 2. DOCTORS STATE ---
@@ -133,7 +81,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [newDoctorForm, setNewDoctorForm] = useState({
     name: '',
     specialty: '',
-    departmentId: DEPARTMENTS[0].id,
+    departmentId: DEPARTMENTS[0]?.id || 'gen-med',
     experienceYears: 10,
     rating: 4.8,
     reviewsCount: 20,
@@ -193,6 +141,42 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     room: 'OPD Room 102',
     type: 'In-Person'
   });
+
+  // Fetch real-time patients from database API
+  useEffect(() => {
+    const fetchAdminPatients = async () => {
+      try {
+        const res = await fetch('/api/admin/patients');
+        const data = await res.json();
+        if (data.success && Array.isArray(data.patients)) {
+          const mapped = data.patients.map((p: any) => ({
+            id: p.patientId || p.id,
+            name: p.fullName || p.name || 'Anonymous Patient',
+            age: p.age || 30,
+            gender: p.gender || 'Unspecified',
+            bloodGroup: p.bloodGroup || 'O+',
+            contact: p.phone || p.contact || '+1 (555) 000-0000',
+            email: p.email || '',
+            status: p.status || 'Outpatient',
+            department: p.department || 'General Medicine',
+            attendingDoctor: p.attendingDoctor || 'Duty Medical Officer',
+            admissionDate: p.createdAt ? p.createdAt.split('T')[0] : '2026-08-05'
+          }));
+          setPatientList(mapped);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch admin patients API:', err);
+      }
+    };
+
+    fetchAdminPatients();
+    const interval = setInterval(fetchAdminPatients, 3000);
+    window.addEventListener('medicare_patient_updated', fetchAdminPatients);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('medicare_patient_updated', fetchAdminPatients);
+    };
+  }, []);
 
   // Fetch real-time appointments from database API
   useEffect(() => {
@@ -344,22 +328,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [reportGeneratedMsg, setReportGeneratedMsg] = useState<string | null>(null);
 
   // Helper Handlers
-  const handleAddPatientSubmit = (e: React.FormEvent) => {
+  const handleAddPatientSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newPat = {
-      id: `PAT-${Math.floor(8800 + Math.random() * 1000)}`,
-      name: newPatientForm.name,
-      age: Number(newPatientForm.age),
-      gender: newPatientForm.gender,
-      bloodGroup: newPatientForm.bloodGroup,
-      contact: newPatientForm.contact || '+1 (555) 000-0000',
-      email: newPatientForm.email || 'patient@medicare.org',
-      status: newPatientForm.status,
-      department: newPatientForm.department,
-      attendingDoctor: newPatientForm.attendingDoctor,
-      admissionDate: new Date().toISOString().split('T')[0]
-    };
-    setPatientList([newPat, ...patientList]);
+    try {
+      const res = await fetch('/api/admin/patients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName: newPatientForm.name,
+          age: newPatientForm.age,
+          gender: newPatientForm.gender,
+          bloodGroup: newPatientForm.bloodGroup,
+          phone: newPatientForm.contact,
+          email: newPatientForm.email,
+          status: newPatientForm.status,
+          department: newPatientForm.department,
+          attendingDoctor: newPatientForm.attendingDoctor
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        window.dispatchEvent(new Event('medicare_patient_updated'));
+        setPatientActionMsg(`Patient record for ${newPatientForm.name} registered successfully.`);
+        setTimeout(() => setPatientActionMsg(null), 4000);
+      }
+    } catch (err) {
+      console.error('Failed to post patient record:', err);
+    }
+
     setShowAddPatientModal(false);
     setNewPatientForm({
       name: '',
@@ -369,9 +365,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       contact: '',
       email: '',
       status: 'Outpatient',
-      department: DEPARTMENTS[0].name,
+      department: DEPARTMENTS[0]?.name || 'General Medicine',
       attendingDoctor: doctorList[0]?.name || 'Dr. Unassigned'
     });
+  };
+
+  const handleConfirmDeletePatient = async () => {
+    if (!patientToDelete) return;
+    try {
+      const res = await fetch(`/api/admin/patients/${patientToDelete.id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        setPatientList(prev => prev.filter(p => p.id !== patientToDelete.id));
+        window.dispatchEvent(new Event('medicare_patient_updated'));
+        setPatientActionMsg(`Patient record for ${patientToDelete.name} (${patientToDelete.id}) permanently deleted from system.`);
+        setTimeout(() => setPatientActionMsg(null), 5000);
+      }
+    } catch (err) {
+      console.error('Failed to delete patient:', err);
+    }
+    setPatientToDelete(null);
   };
 
   const handleAddDoctorSubmit = async (e: React.FormEvent) => {
@@ -409,7 +422,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setNewDoctorForm({
       name: '',
       specialty: '',
-      departmentId: DEPARTMENTS[0].id,
+      departmentId: DEPARTMENTS[0]?.id || 'gen-med',
       experienceYears: 10,
       rating: 4.8,
       reviewsCount: 20,
@@ -521,11 +534,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const subtotal = billItems.reduce((acc, curr) => acc + curr.cost, 0);
     const payable = Math.max(0, subtotal - billInsuranceDiscount);
     const pat = patientList.find(p => p.id === billPatientId) || patientList[0];
+    const patName = pat?.name || 'Jane Doe';
+    const patId = pat?.id || 'PAT-101';
 
     const newInvoice = {
       id: `INV-2026-${Math.floor(100 + Math.random() * 900)}`,
-      patientId: pat.id,
-      patientName: pat.name,
+      patientId: patId,
+      patientName: patName,
       doctor: billDoctor,
       date: new Date().toISOString().split('T')[0],
       totalAmount: subtotal,
@@ -536,7 +551,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     };
 
     setInvoiceList([newInvoice, ...invoiceList]);
-    setBillSuccessMsg(`Invoice #${newInvoice.id} generated & issued for ${pat.name}! Total: $${subtotal.toFixed(2)} (Payable: $${payable.toFixed(2)})`);
+    setBillSuccessMsg(`Invoice #${newInvoice.id} generated & issued for ${patName}! Total: $${subtotal.toFixed(2)} (Payable: $${payable.toFixed(2)})`);
     setTimeout(() => setBillSuccessMsg(null), 5000);
   };
 
@@ -556,14 +571,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   const filteredPatients = patientList.filter(p =>
-    p.name.toLowerCase().includes(patientSearch.toLowerCase()) ||
-    p.id.toLowerCase().includes(patientSearch.toLowerCase()) ||
-    p.department.toLowerCase().includes(patientSearch.toLowerCase())
+    p.name?.toLowerCase().includes(patientSearch.toLowerCase()) ||
+    p.id?.toLowerCase().includes(patientSearch.toLowerCase()) ||
+    p.department?.toLowerCase().includes(patientSearch.toLowerCase())
   );
 
   const filteredDoctorsList = doctorList.filter(d =>
-    d.name.toLowerCase().includes(doctorSearch.toLowerCase()) ||
-    d.specialty.toLowerCase().includes(doctorSearch.toLowerCase())
+    d.name?.toLowerCase().includes(doctorSearch.toLowerCase()) ||
+    d.specialty?.toLowerCase().includes(doctorSearch.toLowerCase())
   );
 
   const filteredInvoices = invoiceList.filter(inv => {
@@ -797,6 +812,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
             </div>
 
+            {/* Patient Action Notification */}
+            {patientActionMsg && (
+              <div className="p-3.5 rounded-xl bg-emerald-950/80 border border-emerald-800/80 text-emerald-300 text-xs font-semibold flex items-center justify-between animate-in fade-in">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span>{patientActionMsg}</span>
+                </div>
+                <button onClick={() => setPatientActionMsg(null)} className="text-emerald-400 hover:text-white cursor-pointer font-bold">✕</button>
+              </div>
+            )}
+
             {/* Patient Table */}
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
@@ -812,62 +838,82 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 font-medium text-slate-200">
-                  {filteredPatients.map((pat) => (
-                    <tr key={pat.id} className="hover:bg-slate-800/40">
-                      <td className="py-4 pr-4">
-                        <strong className="text-white text-sm block">{pat.name}</strong>
-                        <span className="text-sky-400 font-mono text-[11px]">{pat.id}</span>
-                      </td>
-                      <td className="py-4 px-4 text-slate-300">
-                        {pat.age} yrs &bull; {pat.gender}
-                      </td>
-                      <td className="py-4 px-4 font-bold text-rose-400">
-                        {pat.bloodGroup}
-                      </td>
-                      <td className="py-4 px-4 text-slate-300">
-                        <span className="block">{pat.contact}</span>
-                        <span className="text-[10px] text-slate-400">{pat.email}</span>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className="block text-white font-semibold">{pat.department}</span>
-                        <span className="text-slate-400 text-[10px]">{pat.attendingDoctor}</span>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                          pat.status.includes('Admitted')
-                            ? 'bg-rose-950 text-rose-400 border border-rose-800'
-                            : pat.status === 'Discharged'
-                            ? 'bg-slate-800 text-slate-400'
-                            : 'bg-emerald-950 text-emerald-400 border border-emerald-800'
-                        }`}>
-                          {pat.status}
-                        </span>
-                      </td>
-                      <td className="py-4 pl-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => {
-                              setSelectedRecordPatientId(pat.id);
-                              setActiveTab('records');
-                            }}
-                            className="px-2.5 py-1 rounded-lg bg-blue-950/80 text-blue-300 hover:bg-blue-900 border border-blue-800 text-[11px] font-bold cursor-pointer"
-                          >
-                            View EMR
-                          </button>
-                          <button
-                            onClick={() => {
-                              setPatientList(prev =>
-                                prev.map(p => p.id === pat.id ? { ...p, status: p.status === 'Discharged' ? 'Outpatient' : 'Discharged' } : p)
-                              );
-                            }}
-                            className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-bold cursor-pointer"
-                          >
-                            {pat.status === 'Discharged' ? 'Re-Admit' : 'Discharge'}
-                          </button>
-                        </div>
+                  {filteredPatients.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-12 px-4 text-center text-slate-400">
+                        <Users className="w-8 h-8 text-slate-600 mx-auto mb-2" />
+                        <p className="font-bold text-sm text-slate-300">No Patient Records Found</p>
+                        <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+                          There are currently no patient accounts registered in the hospital database. Click "Register Patient" above or register new accounts via the Auth portal.
+                        </p>
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    filteredPatients.map((pat) => (
+                      <tr key={pat.id} className="hover:bg-slate-800/40">
+                        <td className="py-4 pr-4">
+                          <strong className="text-white text-sm block">{pat.name}</strong>
+                          <span className="text-sky-400 font-mono text-[11px]">{pat.id}</span>
+                        </td>
+                        <td className="py-4 px-4 text-slate-300">
+                          {pat.age} yrs &bull; {pat.gender}
+                        </td>
+                        <td className="py-4 px-4 font-bold text-rose-400">
+                          {pat.bloodGroup}
+                        </td>
+                        <td className="py-4 px-4 text-slate-300">
+                          <span className="block">{pat.contact}</span>
+                          <span className="text-[10px] text-slate-400">{pat.email}</span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className="block text-white font-semibold">{pat.department}</span>
+                          <span className="text-slate-400 text-[10px]">{pat.attendingDoctor}</span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                            pat.status.includes('Admitted')
+                              ? 'bg-rose-950 text-rose-400 border border-rose-800'
+                              : pat.status === 'Discharged'
+                              ? 'bg-slate-800 text-slate-400'
+                              : 'bg-emerald-950 text-emerald-400 border border-emerald-800'
+                          }`}>
+                            {pat.status}
+                          </span>
+                        </td>
+                        <td className="py-4 pl-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => {
+                                setSelectedRecordPatientId(pat.id);
+                                setActiveTab('records');
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-blue-950/80 text-blue-300 hover:bg-blue-900 border border-blue-800 text-[11px] font-bold cursor-pointer"
+                            >
+                              View EMR
+                            </button>
+                            <button
+                              onClick={() => {
+                                setPatientList(prev =>
+                                  prev.map(p => p.id === pat.id ? { ...p, status: p.status === 'Discharged' ? 'Outpatient' : 'Discharged' } : p)
+                                );
+                              }}
+                              className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-bold cursor-pointer"
+                            >
+                              {pat.status === 'Discharged' ? 'Re-Admit' : 'Discharge'}
+                            </button>
+                            <button
+                              onClick={() => setPatientToDelete({ id: pat.id, name: pat.name })}
+                              className="px-2.5 py-1 rounded-lg bg-red-950/80 text-red-400 hover:bg-red-900 border border-red-800/80 text-[11px] font-bold cursor-pointer flex items-center gap-1 transition-colors"
+                              title={`Delete ${pat.name} record`}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>Delete</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -1937,6 +1983,45 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </p>
             </div>
 
+          </div>
+        )}
+
+        {/* Modal: Confirm Delete Patient */}
+        {patientToDelete && (
+          <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="w-full max-w-md bg-slate-900 border border-red-900/50 rounded-3xl p-6 sm:p-8 shadow-2xl relative space-y-5 animate-in zoom-in-95 duration-150">
+              <div className="w-12 h-12 rounded-2xl bg-red-950/80 border border-red-800/80 flex items-center justify-center text-red-400 mx-auto">
+                <Trash2 className="w-6 h-6" />
+              </div>
+
+              <div className="text-center space-y-2">
+                <h3 className="text-lg font-bold text-white font-heading">Delete Patient Record?</h3>
+                <p className="text-xs text-slate-300">
+                  Are you sure you want to permanently remove patient <strong className="text-white font-semibold">{patientToDelete.name}</strong> (<span className="text-sky-400 font-mono">{patientToDelete.id}</span>) from the hospital system?
+                </p>
+                <span className="inline-block px-3 py-1 rounded-full text-[10px] font-bold bg-red-950 text-red-300 border border-red-800/60 mt-1">
+                  ⚠️ Permanent Database Erasure
+                </span>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setPatientToDelete(null)}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs cursor-pointer transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDeletePatient}
+                  className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs cursor-pointer transition-colors shadow-lg shadow-red-950 flex items-center justify-center gap-1.5"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Delete Patient</span>
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

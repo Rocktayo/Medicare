@@ -228,7 +228,8 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
     // Dispatch custom event to notify all listening components in real-time
     window.dispatchEvent(new Event('medicare_appointment_updated'));
 
-    setBookingSuccessMsg(`Appointment booked successfully with ${doc.name} on ${bookingDate} at ${bookingTime}! Recorded in database.`);
+    const targetDocName = doc?.name || 'Duty Specialist';
+    setBookingSuccessMsg(`Appointment booked successfully with ${targetDocName} on ${bookingDate} at ${bookingTime}! Recorded in database.`);
     setSymptoms('');
     setTimeout(() => setBookingSuccessMsg(null), 5000);
   };

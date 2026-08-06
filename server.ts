@@ -63,10 +63,7 @@ const defaultDoctors: any[] = [];
 let localData: { users: UserRecord[]; appointments: AppointmentRecord[]; doctors: any[] } = {
   users: [...defaultUsers],
   doctors: [],
-  appointments: [
-    { id: 'APT-101', patientName: 'Jane Doe', doctorName: 'Dr. Robert Chen', specialty: 'Cardiology', dateTime: 'Tomorrow, 10:30 AM', room: 'Suite 402', status: 'Scheduled' },
-    { id: 'APT-102', patientName: 'Jane Doe', doctorName: 'Dr. Sarah Jenkins', specialty: 'Neurology', dateTime: 'Aug 14, 2026 at 2:00 PM', room: 'Suite 210', status: 'Scheduled' }
-  ]
+  appointments: []
 };
 
 // Load initial local data if exists
@@ -340,6 +337,69 @@ app.get('/api/admin/patients', async (req, res) => {
   }
 });
 
+// Admin Create Patient Record API
+app.post('/api/admin/patients', async (req, res) => {
+  try {
+    const { fullName, email, password, age, gender, bloodGroup, phone, status, department, attendingDoctor } = req.body;
+    if (!fullName) {
+      return res.status(400).json({ success: false, error: 'Full Name is required.' });
+    }
+
+    const patientCount = localData.users.filter((u) => u.role === 'Patient').length + 8801;
+    const newPatient: UserRecord = {
+      id: `USR-${Date.now().toString().slice(-4)}`,
+      patientId: `PAT-${patientCount}`,
+      fullName,
+      email: email || `patient${patientCount}@medicare.org`,
+      passwordHash: password || 'Medicare2026',
+      role: 'Patient',
+      age: Number(age) || 30,
+      gender: gender || 'Unspecified',
+      bloodGroup: bloodGroup || 'O+',
+      phone: phone || '+1 (555) 000-0000',
+      createdAt: new Date().toISOString()
+    };
+
+    if (isMongoConnected && db) {
+      await db.collection('users').insertOne(newPatient);
+      return res.json({ success: true, message: 'Patient registered in MongoDB database.', patient: newPatient });
+    } else {
+      localData.users.unshift(newPatient);
+      saveLocalData();
+      return res.json({ success: true, message: 'Patient registered in hospital system.', patient: newPatient });
+    }
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Failed to create patient record.' });
+  }
+});
+
+// Admin Delete Patient API
+app.delete('/api/admin/patients/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (isMongoConnected && db) {
+      await db.collection('users').deleteOne({
+        $or: [{ id: id }, { patientId: id }]
+      });
+      await db.collection('appointments').deleteMany({
+        $or: [{ patientId: id }, { patientName: id }]
+      });
+      return res.json({ success: true, message: 'Patient successfully deleted from database.' });
+    } else {
+      localData.users = localData.users.filter(
+        (u) => u.id !== id && u.patientId !== id
+      );
+      localData.appointments = localData.appointments.filter(
+        (a) => a.patientName !== id
+      );
+      saveLocalData();
+      return res.json({ success: true, message: 'Patient successfully deleted from system.' });
+    }
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Failed to delete patient.' });
+  }
+});
+
 // Get All Appointments API
 app.get('/api/appointments', async (req, res) => {
   try {
@@ -541,4 +601,8 @@ async function startServer() {
   });
 }
 
-startServer();
+export default app;
+
+if (process.env.VERCEL !== '1') {
+  startServer();
+}
