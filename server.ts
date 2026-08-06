@@ -1,6 +1,5 @@
 import express from 'express';
 import path from 'path';
-import { createServer as createViteServer } from 'vite';
 import { MongoClient, Db } from 'mongodb';
 import fs from 'fs';
 
@@ -9,14 +8,18 @@ const PORT = 3000;
 
 app.use(express.json());
 
+const isVercel = process.env.VERCEL === '1' || !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+
 // MongoDB Configuration & Client Initialization
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/medicare_db';
+const MONGODB_URI = process.env.MONGODB_URI || '';
 let dbClient: MongoClient | null = null;
 let db: Db | null = null;
 let isMongoConnected = false;
 
-// Local fallback store file path for zero-config offline/preview environment
-const DATA_FILE = path.join(process.cwd(), 'local_db_backup.json');
+// Local fallback store file path for zero-config offline/preview environment (/tmp on Vercel)
+const DATA_FILE = isVercel
+  ? '/tmp/local_db_backup.json'
+  : path.join(process.cwd(), 'local_db_backup.json');
 
 // Memory store for fallback
 interface UserRecord {
@@ -580,20 +583,32 @@ app.delete('/api/doctors/:id', async (req, res) => {
   }
 });
 
+// Global JSON Error Handler middleware to prevent HTML 500 error pages
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Unhandled Express Server Error:', err);
+  res.status(500).json({
+    success: false,
+    error: err?.message || 'An internal server error occurred on the hospital server.'
+  });
+});
+
 // START EXPRESS SERVER & VITE MIDDLEWARE
 async function startServer() {
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV !== 'production' && !isVercel) {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
     });
     app.use(vite.middlewares);
-  } else {
+  } else if (!isVercel) {
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
+    if (fs.existsSync(distPath)) {
+      app.use(express.static(distPath));
+      app.get('*', (req, res) => {
+        res.sendFile(path.join(distPath, 'index.html'));
+      });
+    }
   }
 
   app.listen(PORT, '0.0.0.0', () => {
@@ -603,6 +618,6 @@ async function startServer() {
 
 export default app;
 
-if (process.env.VERCEL !== '1') {
+if (!isVercel) {
   startServer();
 }
