@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Cross, Building2, Phone, Search, Moon, Sun, Menu, X, Calendar, UserPlus, LogIn, LogOut, User } from 'lucide-react';
+import { MongoDbStatus } from './MongoDbStatus';
 
 interface NavbarProps {
   onOpenBooking: () => void;
@@ -59,7 +60,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500 text-white uppercase tracking-wider">
               24/7 Active
             </span>
-            <span>MediCare Emergency Care Hotline & Trauma Unit Ready</span>
+            <span>MediCare Emergency Care Hotline</span>
+            <span className="hidden md:inline text-blue-300">|</span>
+            <MongoDbStatus variant="navbar" />
           </div>
           <div className="flex items-center gap-4 text-xs">
             <button
@@ -84,21 +87,28 @@ export const Navbar: React.FC<NavbarProps> = ({
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-          {/* Logo */}
-          <a href="#home" className="flex items-center gap-2.5 group cursor-pointer">
-            <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-[#0B3D91] text-white shadow-md group-hover:bg-blue-600 transition-colors">
-              <Cross className="w-6 h-6 text-sky-300 transform group-hover:scale-110 transition-transform" />
-              <Building2 className="w-3.5 h-3.5 absolute bottom-1 right-1 text-white" />
+          {/* Logo & Database Badge */}
+          <div className="flex items-center gap-3">
+            <a href="#home" className="flex items-center gap-2.5 group cursor-pointer">
+              <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-[#0B3D91] text-white shadow-md group-hover:bg-blue-600 transition-colors">
+                <Cross className="w-6 h-6 text-sky-300 transform group-hover:scale-110 transition-transform" />
+                <Building2 className="w-3.5 h-3.5 absolute bottom-1 right-1 text-white" />
+              </div>
+              <div>
+                <span className="text-xl font-bold font-heading text-[#0B3D91] dark:text-blue-400 tracking-tight leading-none block">
+                  MediCare
+                </span>
+                <span className="text-[10px] font-semibold text-sky-600 dark:text-sky-400 tracking-widest uppercase block">
+                  Hospital System
+                </span>
+              </div>
+            </a>
+
+            {/* Prominent MongoDB Connected Indicator in Main Header */}
+            <div className="hidden sm:block ml-2">
+              <MongoDbStatus variant="header" />
             </div>
-            <div>
-              <span className="text-xl font-bold font-heading text-[#0B3D91] dark:text-blue-400 tracking-tight leading-none block">
-                MediCare
-              </span>
-              <span className="text-[10px] font-semibold text-sky-600 dark:text-sky-400 tracking-widest uppercase block">
-                Hospital System
-              </span>
-            </div>
-          </a>
+          </div>
 
           {/* Desktop Navigation Links */}
           <nav className="hidden lg:flex items-center gap-6">

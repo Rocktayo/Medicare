@@ -119,11 +119,21 @@ connectToMongoDB();
 // API ROUTES
 
 // Health Check API
-app.get('/api/health', (req, res) => {
+app.get('/api/health', async (req, res) => {
+  if (!isMongoConnected && process.env.MONGODB_URI) {
+    try {
+      await connectToMongoDB();
+    } catch (e) {
+      // ignore
+    }
+  }
   res.json({
     status: 'ok',
     mongodbConnected: isMongoConnected,
-    database: isMongoConnected ? 'MongoDB (Cloud/URI)' : 'MongoDB Store Engine (Local/Fallback)',
+    uriConfigured: !!process.env.MONGODB_URI,
+    database: isMongoConnected
+      ? 'MongoDB Cloud/Cluster Database'
+      : (process.env.MONGODB_URI ? 'MongoDB Connecting...' : 'MongoDB Local Store Engine'),
     userCount: localData.users.length
   });
 });

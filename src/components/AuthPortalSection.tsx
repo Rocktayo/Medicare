@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { LogIn, UserPlus, Mail, Lock, User, CheckCircle2, AlertCircle, Phone, Database, ShieldCheck, Building2, Sparkles, ArrowRight, LogOut, UserCheck } from 'lucide-react';
+import { MongoDbStatus } from './MongoDbStatus';
 
 interface AuthPortalSectionProps {
   onLoginSuccess: (userType: 'Patient' | 'Admin', name: string) => void;
@@ -521,10 +522,7 @@ export const AuthPortalSection: React.FC<AuthPortalSectionProps> = ({
 
           {/* Database Footer Status */}
           <div className="mt-8 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-400">
-            <div className="flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
-              <Database className="w-4 h-4" />
-              <span>MongoDB Real-Time Sync Active</span>
-            </div>
+            <MongoDbStatus variant="badge" />
             <span>HIPAA Compliant Security</span>
           </div>
 

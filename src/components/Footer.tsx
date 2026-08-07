@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Cross, Building2, Phone, Mail, MapPin, Send, CheckCircle2, Heart } from 'lucide-react';
 import { DEPARTMENTS } from '../data/hospitalData';
+import { MongoDbStatus } from './MongoDbStatus';
 
 export const Footer: React.FC = () => {
   const [newsletterEmail, setNewsletterEmail] = useState('');
@@ -129,8 +130,9 @@ export const Footer: React.FC = () => {
 
         {/* Sub-footer Copyright */}
         <div className="pt-8 border-t border-blue-900/60 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-blue-200 dark:text-slate-400">
-          <div>
-            &copy; {new Date().getFullYear()} MediCare Hospital Management System. All Rights Reserved.
+          <div className="flex items-center gap-3 flex-wrap">
+            <span>&copy; {new Date().getFullYear()} MediCare Hospital Management System. All Rights Reserved.</span>
+            <MongoDbStatus variant="footer" />
           </div>
           <div className="flex items-center gap-6">
             <a href="#privacy" onClick={(e) => e.preventDefault()} className="hover:text-white transition-colors">Privacy Policy</a>

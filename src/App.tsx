@@ -24,6 +24,7 @@ import { PatientDashboard } from './components/PatientDashboard';
 import { AdminDashboard } from './components/AdminDashboard';
 import { LiveChatWidget } from './components/LiveChatWidget';
 import { FloatingControls } from './components/FloatingControls';
+import { MongoDbStatus } from './components/MongoDbStatus';
 import { Doctor } from './types';
 import { UserCheck, ShieldCheck, LogOut } from 'lucide-react';
 
@@ -274,6 +275,8 @@ export default function App() {
       {/* Scroll to top & floating appointment pill */}
       <FloatingControls onOpenBooking={handleOpenBooking} />
 
+      {/* Floating Always-Visible MongoDB Status Badge */}
+      <MongoDbStatus variant="floating" />
     </div>
   );
 }

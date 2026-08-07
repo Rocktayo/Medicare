@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, LogIn, UserPlus, Mail, Lock, User, CheckCircle2, AlertCircle, Phone, Database, ShieldCheck, Building2, LogOut, UserCheck } from 'lucide-react';
+import { MongoDbStatus } from '../MongoDbStatus';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -523,10 +524,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         {/* Database Footer Status */}
         <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-400">
-          <div className="flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
-            <Database className="w-3.5 h-3.5" />
-            <span>MongoDB Persistence Active</span>
-          </div>
+          <MongoDbStatus variant="badge" />
           <span>256-Bit SSL Secured</span>
         </div>
 
