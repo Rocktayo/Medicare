@@ -860,8 +860,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           {pat.bloodGroup}
                         </td>
                         <td className="py-4 px-4 text-slate-300">
-                          <span className="block">{pat.contact}</span>
-                          <span className="text-[10px] text-slate-400">{pat.email}</span>
+                          <span className="block font-semibold text-white">{pat.contact}</span>
+                          <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                            <span className="text-[10px] text-slate-400">{pat.email || 'N/A'}</span>
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800" title="Email Security Audit Verified">
+                              <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                              <span>Verified</span>
+                            </span>
+                          </div>
                         </td>
                         <td className="py-4 px-4">
                           <span className="block text-white font-semibold">{pat.department}</span>

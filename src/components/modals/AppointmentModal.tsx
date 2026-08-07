@@ -3,6 +3,8 @@ import { DEPARTMENTS, DOCTORS } from '../../data/hospitalData';
 import { Doctor } from '../../types';
 import { X, Calendar as CalendarIcon, Clock, User, Phone, Mail, FileText, CheckCircle2, Sparkles, Printer } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { EmailSecurityCheckWidget } from '../EmailSecurityCheckWidget';
+import { EmailSecurityResult } from '../../lib/emailSecurity';
 
 interface AppointmentModalProps {
   isOpen: boolean;
@@ -329,9 +331,9 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
+              <div className="sm:col-span-2">
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
-                  Email Address *
+                  Patient Email Address *
                 </label>
                 <div className="relative">
                   <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -344,9 +346,16 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
                     className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-[#0B3D91]"
                   />
                 </div>
+
+                <EmailSecurityCheckWidget
+                  email={patientEmail}
+                  onFixEmail={(fixed) => setPatientEmail(fixed)}
+                  onSecurityCheckChange={() => {}}
+                  requireCodeVerification={false}
+                />
               </div>
 
-              <div>
+              <div className="sm:col-span-2">
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
                   Phone Number *
                 </label>

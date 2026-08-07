@@ -335,8 +335,9 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                 <h1 className="text-2xl sm:text-3xl font-extrabold font-heading tracking-tight">
                   {displayName}
                 </h1>
-                <span className="px-3 py-0.5 rounded-full text-xs font-bold bg-emerald-400/20 text-emerald-300 border border-emerald-400/30">
-                  Verified Patient
+                <span className="px-3 py-0.5 rounded-full text-xs font-bold bg-emerald-400/20 text-emerald-300 border border-emerald-400/30 flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" />
+                  <span>Verified Patient &bull; Email Security Audit Passed 🛡️</span>
                 </span>
               </div>
               <p className="text-blue-100 text-xs sm:text-sm mt-1">

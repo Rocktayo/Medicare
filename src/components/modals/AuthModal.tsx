@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { X, LogIn, UserPlus, Mail, Lock, User, CheckCircle2, AlertCircle, Phone, Database, ShieldCheck, Building2, LogOut, UserCheck } from 'lucide-react';
 import { MongoDbStatus } from '../MongoDbStatus';
+import { EmailSecurityCheckWidget } from '../EmailSecurityCheckWidget';
+import { EmailSecurityResult } from '../../lib/emailSecurity';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -39,6 +41,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [bloodGroup, setBloodGroup] = useState('O+');
   const [allergies, setAllergies] = useState('');
 
+  // Email Security Check States
+  const [emailSecurityResult, setEmailSecurityResult] = useState<EmailSecurityResult | null>(null);
+  const [isEmailSecurityPassed, setIsEmailSecurityPassed] = useState<boolean>(false);
+
   // Status & Error
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -51,6 +57,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+
+    // Security Check Enforcement
+    if (emailSecurityResult && emailSecurityResult.status === 'rejected') {
+      setErrorMessage(emailSecurityResult.message || 'Email address failed security audit.');
+      return;
+    }
+
+    if (emailSecurityResult && emailSecurityResult.hasTypoWarning) {
+      setErrorMessage(emailSecurityResult.message || 'Please fix the domain typo in your email.');
+      return;
+    }
+
+    if (!isEmailSecurityPassed) {
+      setErrorMessage('Please complete the 6-digit email security passcode verification step.');
+      return;
+    }
 
     if (regPassword !== confirmPassword) {
       setErrorMessage('Passwords do not match. Please verify.');
@@ -360,7 +382,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
+              <div className="sm:col-span-2">
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
                   Email Address *
                 </label>
@@ -375,9 +397,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-[#0B3D91] text-slate-900 dark:text-white"
                   />
                 </div>
+
+                {/* Email Security Audit Widget */}
+                <EmailSecurityCheckWidget
+                  email={regEmail}
+                  onFixEmail={(fixed) => setRegEmail(fixed)}
+                  onSecurityCheckChange={(res, verified) => {
+                    setEmailSecurityResult(res);
+                    setIsEmailSecurityPassed(verified);
+                  }}
+                  requireCodeVerification={true}
+                />
               </div>
 
-              <div>
+              <div className="sm:col-span-2">
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
                   Phone Number
                 </label>
